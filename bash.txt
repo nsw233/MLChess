@@ -1,0 +1,14 @@
+for LOG2C in $(seq 0 10); do for DEGREE in 1 2; do for SPLIT in $(seq 1 10); do for NU in .1 .2 .3 .4 .5 .6 .7 .8 .9; do C=$(python -c "print 2 ** $LOG2C"); echo "c="$C "NU="$NU "d="$DEGREE "split="$SPLIT; ../libsvm-3.12/svm-train -s 4 -t 1 -d $DEGREE -c $C -n $NU CA/train.$SPLIT.txt CAMod/model.$LOG2C.$DEGREE.$NU.$SPLIT.txt > CAMod/train.$LOG2C.$DEGREE.$NU.$SPLIT.log.txt; ../libsvm-3.12/svm-predict CA/dev.$SPLIT.txt CAMod/model.$LOG2C.$DEGREE.$NU.$SPLIT.txt CAMod/dev.$LOG2C.$DEGREE.$NU.$SPLIT.prediction.txt > CAMod/dev.$LOG2C.$DEGREE.$NU.$SPLIT.log.txt; done; done; done; done
+
+echo -n > CAModRes/dev.results.txt
+for F in CAMod/dev.*.log.txt; do echo $F $(cat $F) | sed 's;.*\.\(.*\)\.\(.*\)\.\.\(.*\)\.\(.*\)\.log.* = \(.*\) (reg.*(regression);\1 \2 \3 \4 \5;' >> CAModRes/dev.results.txt; done
+
+awk '{
+       accuracy_mean[$1" "$2" "$3] += $5 / 10;
+     }
+     END {
+       for (cond in accuracy_mean) {
+         mean = accuracy_mean[cond];
+         print cond, mean;
+       }
+     }' CAModRes/dev.results.txt | sort -n -k 4 > CAModRes/dev.results.summary.txt
